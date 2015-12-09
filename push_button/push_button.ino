@@ -1,10 +1,10 @@
-// constants won't change. They're used here to
+#include <button.h>
 
 // set pin numbers:
 const int buttonPin = 2;     // the number of the pushbutton pin
-const int modOutput = 11;   // the number of the MOD pin
+const int modOutputPin = 11;   // the number of the MOD pin
 
-const int inputTimeInitWindow = 250;
+const int inputTimeInitWindow = 150;
 
 // const Object modClient = new ModClient();
 
@@ -21,7 +21,7 @@ int inputTimeExtension  = 0;
 long holdStartTime      = 0;
 long holdTime           = 0;
 long resetStateStart    = 0;
-long timeSinceHoldStart = 0;
+long timeSinceHoldStart = 0; 
 
 bool pressSession = false;  // I dont really need this if im tracking start time but meeeeh, i like booleans a lot.
 
@@ -34,11 +34,17 @@ long startTime          = 0;
 float ohms  = 0;
 float volts = 0;
 int watts   = 0; // in the future I want to read from persistant state
+// hold total time in hours
+// battery hours
 
 // can i use a hash for juice stats?
 int juiceRating   = 0;
 int juiceNicLevel = 0;
 String juiceName  = "No Juice";
+
+
+// BUTTON CLASS CODE HERE
+// Button interfaceButton = new Button("main", Pin(2, "read"), []); // name, Input Pin, Output Pins
 
 void setup() {
   
@@ -54,7 +60,11 @@ void loop() {
   // since my only input right now is through this button let's do some wacky shit
   
   // read the state of the pushbutton value:
+  // interfaceButton.state(digitalRead(buttonPin));
   buttonState = digitalRead(buttonPin);
+  cycles++;
+
+  // can this be moved into the hold state logic?
   timeSinceHoldStart = millis() - holdStartTime;
   
   if (buttonState == HIGH && buttonState == previousButtonState) {
@@ -68,7 +78,7 @@ void loop() {
     
     } else if (buttonPressCount == 1 && holdTime >= 250) {
       // modAdapterObject for controller mod + collecting data
-      digitalWrite(modOutput, HIGH);
+      digitalWrite(modOutputPin, HIGH);
     }
     
     holdCycles++;
@@ -79,10 +89,7 @@ void loop() {
     // sleeeeeep screen ;)
 
     // turn off the mod
-    digitalWrite(modOutput, LOW);
-    
-    delay(150);
-    Serial.println("I'm sleepy");
+    digitalWrite(modOutputPin, LOW);
     
     if (timeSinceHoldStart >= inputTimeInitWindow && holdStartTime != 0) {
       
@@ -151,7 +158,7 @@ int fadeIn(int currentLevel, int level) {
   
   delay(50);
 
-  analogWrite(modOutput, newLevel);
+  analogWrite(modOutputPin, newLevel);
 
   return newLevel;
 }
@@ -159,7 +166,7 @@ int fadeIn(int currentLevel, int level) {
 void pinSetup() {
   
   // initialize the MOD pin as an output:
-  pinMode(modOutput, OUTPUT);
+  pinMode(modOutputPin, OUTPUT);
   // initialize the pushbutton pin as an input:
   pinMode(buttonPin, INPUT);
   
@@ -185,7 +192,7 @@ bool runStartupBehavior() {
       
       startupComplete == true;
       
-      digitalWrite(modOutput, LOW);
+      digitalWrite(modOutputPin, LOW);
       Serial.println("Startup Complete.");
       break;
     }
