@@ -1,27 +1,12 @@
 #include <button.h>
-
-// set pin numbers:
-const int buttonPin = 2;     // the number of the pushbutton pin
-const int modOutputPin = 11;   // the number of the MOD pin
+#include <pin.h>
 
 const int inputTimeInitWindow = 150;
 
-// const Object modClient = new ModClient();
-
-// variables will change:
-// Button Vars
-int buttonState         = 0;         // variable for reading the pushbutton status
-int buttonPressCount    = 0;
-int holdCount           = 0;
-int holdCycles          = 0;
-int previousButtonState = 0;
-int inputTimeExtension  = 0;
-
-// Button Timers
-long holdStartTime      = 0;
 long holdTime           = 0;
-long resetStateStart    = 0;
-long timeSinceHoldStart = 0; 
+// long resetStateStart    = 0;
+  long timeSinceHoldStart = 0;
+  Button mainButton = Button("main");
 
 bool pressSession = false;  // I dont really need this if im tracking start time but meeeeh, i like booleans a lot.
 
@@ -49,10 +34,13 @@ String juiceName  = "No Juice";
 void setup() {
   
   serialSetup();
+  
   pinSetup();
+  
   runStartupBehavior();
 
-  promptNewSession(); // or skip to NEW NEW NEW NEW NEW session so people can input later
+  promptNewSession(); // or skip to NEW NEW NEW NEW NEW session  so people can input later
+
 }
 
 void loop() {
@@ -61,62 +49,57 @@ void loop() {
   
   // read the state of the pushbutton value:
   // interfaceButton.state(digitalRead(buttonPin));
-  buttonState = digitalRead(buttonPin);
+  // buttonState = digitalRead(buttonPin);
   cycles++;
-
-  // can this be moved into the hold state logic?
-  timeSinceHoldStart = millis() - holdStartTime;
   
-  if (buttonState == HIGH && buttonState == previousButtonState) {
-    
-    holdTime = millis() - holdStartTime;
+  if (mainButton.state() == HIGH && mainButton.state() == mainButton.previousState()) {
     
     // turn on the mod if we've on encountered 1 press
     // we wait 1 cycle for state change to check if the button is still being pressed
     // might want to wait until the input session expires before triggering these actions
-    if (buttonPressCount == 2 && holdTime >= 250) {
-    
-    } else if (buttonPressCount == 1 && holdTime >= 250) {
+    if (mainButton.pressCount() == 2 && mainButton.holdTime() >= 250) {
+      // define some behavior for 2 clicks
+    } else if (mainButton.pressCount() == 1 && mainButton.holdTime() >= 250) {
+      
       // modAdapterObject for controller mod + collecting data
-      digitalWrite(modOutputPin, HIGH);
+      // digitalWrite(modOutputPin, HIGH);
+      mainButton.start();
+      mainButton.getPin("atomizer").set(HIGH);
+      //PinRepository.get("atomizer")
     }
     
-    holdCycles++;
+    mainButton.hold();
     
-  } else if (buttonState == LOW && buttonState == previousButtonState) {
+  } else if (mainButton.state() == LOW && mainButton.state() == mainButton.previousState()) {
  
-    // and object at reset will stay at rest until I'm try to vape dat
+    // an object at reset will stay at rest until I'm tryina vape dat
     // sleeeeeep screen ;)
 
-    // turn off the mod
-    digitalWrite(modOutputPin, LOW);
+    // turn off the mod if the mod is turned on
+    mainButton.getPin("atomizer").set(LOW);
     
-    if (timeSinceHoldStart >= inputTimeInitWindow && holdStartTime != 0) {
-      
-      resetHoldData();
-      
+    if (mainButton.timeSinceHoldStart() >= mainButton.inputTimeWindow() && mainButton.start() != 0) {
       Serial.println("session expired");
     }
     
   } else {
     
     // reset vars or do things
-    if (buttonState == LOW && previousButtonState == HIGH) {
+    if (mainButton.state() == LOW && mainButton.previousState() == HIGH) {
       //set vape data && reset
 
-      if (buttonPressCount == 1) {
+      if (mainButton.pressCount() == 1) {
         Serial.print("held the button for:");
         Serial.print(holdTime);
         Serial.print(" milliseconds\n\n\n");
         clouds();
       }
       
-      resetStateStart = millis();  // not using but would be helpful in debouncing
+      mainButton.stop(millis());  // not using but would be helpful in debouncing
 
-    } else if(buttonState == HIGH && previousButtonState == LOW) {
+    } else if(mainButton.state() == HIGH && mainButton.previousState() == LOW) {
 
-      holdCycles = 1;
-      buttonPressCount++;
+      mainButton.start(millis());
       
       triggerPressBehavior();
       
@@ -125,31 +108,21 @@ void loop() {
     }
   }
   
-  if (previousButtonState != buttonState) {
-    previousButtonState = buttonState;
+  if (mainButton.previousState() != mainButton.state()) {
+    mainButton.previousStateSetter(mainButton.state());
   }
 }
 
-// Mod Control
-void modControl() {}
 void triggerPressBehavior () {
-  if(buttonPressCount == 2) {
+  if(mainButton.pressCount() == 2) {
     delay(250);
     Serial.println("2 press");
-  } else if(buttonPressCount == 1) {
-    holdStartTime = millis();
+  } else if(mainButton.pressCount() == 1) {
+    mainButton.start(millis());
   } else {
-     Serial.println(buttonPressCount);
+     Serial.println(mainButton.pressCount());
   }
 }
-
-// Vape Data
-void resetHoldData() {    
-  buttonPressCount = 0;
-  timeSinceHoldStart = 0;
-  holdStartTime = 0;
-}
-
 
 // INIT
 int fadeIn(int currentLevel, int level) {
@@ -158,18 +131,21 @@ int fadeIn(int currentLevel, int level) {
   
   delay(50);
 
-  analogWrite(modOutputPin, newLevel);
+  // analogWrite(modOutputPin, newLevel);
 
   return newLevel;
 }
 
 void pinSetup() {
-  
-  // initialize the MOD pin as an output:
-  pinMode(modOutputPin, OUTPUT);
-  // initialize the pushbutton pin as an input:
-  pinMode(buttonPin, INPUT);
-  
+
+    // set pin numbers:
+  int buttonPin = 2;     // the number of the pushbutton pin
+  int modOutputPin = 11;   // the number of the MOD pin
+  int statusLedPin = 8;
+
+  Pin atomizer = Pin("atomizer", modOutputPin, OUTPUT, LOW);
+  Pin button   = Pin("main", buttonPin, INPUT);
+
 }
 
 void promptNewSession() {
@@ -192,7 +168,7 @@ bool runStartupBehavior() {
       
       startupComplete == true;
       
-      digitalWrite(modOutputPin, LOW);
+      // digitalWrite(modOutputPin, LOW);
       Serial.println("Startup Complete.");
       break;
     }
@@ -210,17 +186,18 @@ void serialSetup() {
   // send an intro:
   Serial.println("\n\nLet's vape some juices!");
   Serial.println();
+
 }
 
 // Print Screens
 void clouds() {
   
-Serial.println("        _ __");
-Serial.println("    (-       -  )__- -_");
-Serial.println("   (  -=  - )   -     _)");
-Serial.println("  (_-= _(    =-    _=-");
-Serial.println("   -(     -    -  _)");
-Serial.println("     -=__(__  _-)-");
-Serial.println("           -=-\n\n\n");
+  Serial.println("        _ __");
+  Serial.println("    (-       -  )__- -_");
+  Serial.println("   (  -=  - )   -     _)");
+  Serial.println("  (_-= _(    =-    _=-");
+  Serial.println("   -(     -    -  _)");
+  Serial.println("     -=__(__  _-)-");
+  Serial.println("           -=-\n\n\n");
 
 }

@@ -1,18 +1,48 @@
-class Button {
+#include "Arduino.h"
+#include <StandardCplusplus.h>
+// #include <serstream>
+#include <string>
+#include <vector>
 
-  // Button Vars
-  int buttonState         = 0;  // variable for reading the pushbutton status
-  int buttonPressCount    = 0;
-  int holdCount           = 0; // dupe?
-  int holdCycles          = 0;
-  int previousButtonState = 0;
-  int inputTimeExtension  = 0;
-  
-  // Button Timers
-  long holdStartTime      = 0;
-  long holdTime           = 0;
-  long resetStateStart    = 0;
-  long timeSinceHoldStart = 0;
+#include <pin.h>
+#include <repository.h>
+#include "button.h"
 
-  
-} button;
+using namespace std;
+
+Button::Button(string identity) {
+
+}; // assign name but not pins
+
+Button::Button(string identity, Pin controlledPins[]){
+
+}; // assign name and pins
+
+int Button::inputTimeWindow(){};
+int Button::hold() {};
+int Button::holdCount() {};
+int Button::holdCycles() {};
+long Button::holdTime() {};
+int Button::pressCount() {};
+int Button::push() {};
+int Button::previousState() {};
+void Button::previousStateSetter(int _state_) {};
+void Button::reset() {};
+void Button::reset(int _time_) {};
+int Button::start() {};
+int Button::start(int _time_) {};
+int Button::state() {};
+int Button::state(int _state_) {};
+int Button::stop(int _time_) {};
+int Button::timeSinceHoldStart() {};
+
+Pin Button::getPin(string indetity) {
+  Pin pin = repo.getPin(identity);
+  return pin;
+};
+
+Pin Button::getPin(int number) {
+  Pin pin = repo.getPin(number);
+  return pin;
+};
+
